@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+set -e
+
+PROGNAME=$(basename $0)
+VERSION=0.0.1
+
+usage () {
+    cat <<EOF
+${PROGNAME} - 1Password CLI でいい感じにするやつ
+
+Usage:
+    ${PROGNAME} [<options>]
+
+Options:
+    -i              Select field interactive
+    -f, --field     1Password item fields
+    -n, --name      1Password item name
+    -h, --help      Show this message
+    -v, --version   Print the $(progname) version
+EOF
+}
+
+get_field_interactive () {
+    local OP_ITEM=$(op get item "${OP_ITEM_NAME}")
+    local OP_ITEM_SECTION_NUM=$(echo ${OP_ITEM} | jq -r '.details.sections | length')
+    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 1 ]; then
+        KEY=".details | [.fields[].designation, .sections[].fields[]?.t]"
+    else
+        KEY=".details.fields[].designation"
+    fi
+
+    echo ${OP_ITEM} | jq -r "${KEY} | .[]" | fzf
+}
+
+# parse arguments
+for OPT in "$@"
+do
+    case $OPT in
+        "-h" | "--help")
+            usage
+            exit 1
+            ;;
+        "-v" | "--version")
+            echo "${VERSION}"
+            exit 1
+            ;;
+        "-i")
+            INTERACTIVE=1
+            shift
+            ;;
+        "-f" | "--field")
+            OP_ITEM_FIELD=$2
+            shift 2
+            ;;
+        "-n" | "--name")
+            OP_ITEM_NAME=$2
+            shift 2
+            ;;
+    esac
+done
+
+# check op session
+set +e
+op get account > /dev/null
+ret=$?
+set -e
+
+if [ $ret -ne 0 ]; then
+    eval $(op signin my)
+fi
+
+# get 1password item by using 1password cli
+if [ -z "${OP_ITEM_NAME}" ]; then
+    OP_ITEM_NAME=$(op list items | jq -r '.[].overview.title' | fzf)
+fi
+
+# get 1password item field interactive
+if [ "$INTERACTIVE" = 1 ]; then
+    OP_ITEM_FIELD=$(get_field_interactive)
+fi
+
+# get password from 1password item
+op get item ${OP_ITEM_NAME} --fields "${OP_ITEM_FIELD:-password}" | pbcopy
+echo "Copy item to clipboard. (item=${OP_ITEM_NAME}, field=${OP_ITEM_FIELD:-password})"
