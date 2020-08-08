@@ -101,7 +101,7 @@ op-tool provides an interactive interface with a fuzzy-finder(fzf).
 
 - select field
 
-![select_field_fzf](img/fzf_field).png)
+![select_field_fzf](img/fzf_field.png)
 
 Copy credential from 1password.
 
