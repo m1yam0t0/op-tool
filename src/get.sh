@@ -17,7 +17,7 @@ select_field () {
         KEY=".fields[].designation"
     fi
 
-    echo "${OP_ITEM}" | jq -r "${KEY}" | fzf
+    echo "${OP_ITEM}" | jq -r "${KEY} | select (length > 0)" | fzf
 }
 
 # Get credential
