@@ -33,10 +33,12 @@ op_get_otp () {
 # Usage
 usage_get () {
     cat <<EOF
-${CMDNAME} - 1Password CLI でいい感じにするやつ
+${CMDNAME} - Get credential from 1Password
 
 Usage:
-    ${CMDNAME} [<options>]
+    ${CMDNAME} [(-n|--name) <name>] [(-f|--field) <field>] [(-i|--interactive)] [--otp]
+    ${CMDNAME} -h | --help
+    ${CMDNAME} -v | --version
 
 Options:
     -n, --name          1Password item name

@@ -4,10 +4,12 @@
 
 usage () {
     cat <<EOF
-${PROGNAME} - 1Password CLI でいい感じにするやつ
+${PROGNAME} - make it convenient to use 1Password CLI
 
 Usage:
-    ${PROGNAME} [<options>]
+    ${PROGNAME} <command> [<args>]
+    ${PROGNAME} -h | --help
+    ${PROGNAME} -v | --version
 
 Commands:
     get                 Get password from 1Password Vault
@@ -15,7 +17,7 @@ Commands:
 
 Options:
     -h, --help          Show this message
-    -v, --version       Print the ${PROGNAME} version
+    -v, --version       Print the op-tool version
 EOF
 }
 

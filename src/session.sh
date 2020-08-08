@@ -36,10 +36,12 @@ restore_op_session () {
 # Usage
 usage_session () {
     cat <<EOF
-${CMDNAME} - store op session
+${CMDNAME} - Store 1Password CLI session
 
 Usage:
-    ${CMDNAME} [<options>]
+    ${CMDNAME}
+    ${CMDNAME} -h | --help
+    ${CMDNAME} -v | --version
 
 Options:
     -h, --help      Show this message
