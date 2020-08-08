@@ -1,5 +1,36 @@
-#!/usr/bin/env bash
+#--------------------------------------------------
+# Get
+#--------------------------------------------------
 
+# Select item from list
+select_item () {
+    ${OP_CMD} list items | jq -r '.[].overview.title' | fzf
+}
+
+# Select field from item
+select_field () {
+    local OP_ITEM=$(${OP_CMD} get item "${OP_ITEM_NAME}")
+    local OP_ITEM_SECTION_NUM=$(echo ${OP_ITEM} | jq -r '.details.sections | length')
+    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 1 ]; then
+        KEY=".details | [.fields[].designation, .sections[].fields[]?.t]"
+    else
+        KEY=".details.fields[].designation"
+    fi
+
+    echo ${OP_ITEM} | jq -r "${KEY} | .[]" | fzf
+}
+
+# Get credential
+op_get_item () {
+    ${OP_CMD} get item ${OP_ITEM_NAME} --fields "${OP_ITEM_FIELD:-password}" | pbcopy
+}
+
+# Get one-time password
+op_get_otp () {
+    ${OP_CMD} get totp ${OP_ITEM_NAME} | pbcopy
+}
+
+# Usage
 usage_get () {
     cat <<EOF
 ${CMDNAME} - 1Password CLI でいい感じにするやつ
@@ -17,42 +48,17 @@ Options:
 EOF
 }
 
-select_item () {
-    ${OP_CMD} list items | jq -r '.[].overview.title' | fzf
-}
-
-select_field () {
-    local OP_ITEM=$(${OP_CMD} get item "${OP_ITEM_NAME}")
-    local OP_ITEM_SECTION_NUM=$(echo ${OP_ITEM} | jq -r '.details.sections | length')
-    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 1 ]; then
-        KEY=".details | [.fields[].designation, .sections[].fields[]?.t]"
-    else
-        KEY=".details.fields[].designation"
-    fi
-
-    echo ${OP_ITEM} | jq -r "${KEY} | .[]" | fzf
-}
-
-op_get_item () {
-    ${OP_CMD} get item ${OP_ITEM_NAME} --fields "${OP_ITEM_FIELD:-password}" | pbcopy
-}
-
-op_get_otp () {
-    ${OP_CMD} get totp ${OP_ITEM_NAME} | pbcopy
-}
-
-# parse arguments
+# Parse arguments
 arg_parse_get () {
     for OPT in "$@"
     do
         case $OPT in
             "-h" | "--help")
                 usage_get
-                exit 1
+                exit 0
                 ;;
             "-v" | "--version")
                 echo "${VERSION}"
-                exit 1
                 ;;
             "-n" | "--name")
                 OP_ITEM_NAME=$2
@@ -74,6 +80,7 @@ arg_parse_get () {
     done
 }
 
+# op-tool get
 op_get () {
     CMDNAME="${PROGNAME} get"
     arg_parse_get "$@"
@@ -99,4 +106,3 @@ op_get () {
     fi
     echo "Copied 1Password item to clipboard. (item=${OP_ITEM_NAME}, field=${OP_ITEM_FIELD:-password})"
 }
-

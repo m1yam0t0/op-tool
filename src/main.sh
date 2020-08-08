@@ -1,12 +1,6 @@
-#!/usr/bin/env bash
-
-set -e
-
-PROGDIR=$(dirname $0)
-PROGNAME=$(basename $0)
-
-# load utils
-. ${PROGDIR}/utils/utils.sh
+#--------------------------------------------------
+# main function
+#--------------------------------------------------
 
 usage () {
     cat <<EOF

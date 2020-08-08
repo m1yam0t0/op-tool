@@ -1,8 +1,39 @@
-#!/usr/bin/env bash
+#--------------------------------------------------
+# Session
+#--------------------------------------------------
 
-OP_SESSIONDIR=${XDG_CACHE_HOME:-~/.cache}/op
-OP_SESSIONFILE=${OP_SESSIONDIR}/session
+# Get session id from file
+get_op_session () {
+    cat ${OP_SESSIONFILE} | head -1 | sed -E 's/^export OP_SESSION_.+="(.*)"/\1/'
+}
 
+# Set --session flag to 1Password CLI
+set_op_session () {
+    OP_CMD="op --session=$(get_op_session)"
+}
+
+# Check 1Password CLI session
+check_op_session() {
+    if [ ! -f ${OP_SESSIONFILE} ]; then
+        echo "-1"
+    fi
+
+    set +e
+    ${OP_CMD} get account > /dev/null
+    echo $?
+    set -e
+}
+
+# Save 1Password CLI session to file
+restore_op_session () {
+    if [ ! -d ${OP_SESSIONDIR} ] ;then
+        mkdir -p ${OP_SESSIONDIR}
+    fi
+    op signin ${OP_SIGNIN_ADDRESS:-my} > ${OP_SESSIONFILE}
+    set_op_session
+}
+
+# Usage
 usage_session () {
     cat <<EOF
 ${CMDNAME} - store op session
@@ -16,33 +47,7 @@ Options:
 EOF
 }
 
-get_op_session () {
-    cat ${OP_SESSIONFILE} | head -1 | sed -E 's/^export OP_SESSION_.+="(.*)"/\1/'
-}
-
-set_op_session () {
-    OP_CMD="op --session=$(get_op_session)"
-}
-
-check_op_session() {
-    if [ ! -f ${OP_SESSIONFILE} ]; then
-        echo "-1"
-    fi
-
-    set +e
-    ${OP_CMD} get account > /dev/null
-    echo $?
-    set -e
-}
-
-restore_op_session () {
-    if [ ! -d ${OP_SESSIONDIR} ] ;then
-        mkdir -p ${OP_SESSIONDIR}
-    fi
-    op signin ${OP_SIGNIN_ADDRESS:-my} > ${OP_SESSIONFILE}
-    set_op_session
-}
-
+# Parse arguments
 arg_parse_session () {
     for OPT in "$@"
     do
@@ -53,13 +58,10 @@ arg_parse_session () {
                 ;;
             "-v" | "--version")
                 echo "${VERSION}"
-                exit 0
                 ;;
         esac
     done
 }
-
-OP_CMD="op --session=$(get_op_session)"
 
 # check op session
 op_session () {
