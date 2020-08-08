@@ -43,10 +43,12 @@ restore_op_session () {
 # Usage
 usage_session () {
     cat <<EOF
-${CMDNAME} - store op session
+${CMDNAME} - Store 1Password CLI session
 
 Usage:
-    ${CMDNAME} [<options>]
+    ${CMDNAME}
+    ${CMDNAME} -h | --help
+    ${CMDNAME} -v | --version
 
 Options:
     -h, --help      Show this message
@@ -99,7 +101,7 @@ select_field () {
     if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 0 ]; then
         KEY="[.fields[].designation, .sections[].fields[]?.t] | .[]"
     else
-        KEY=".details.fields[].designation"
+        KEY=".fields[].designation"
     fi
 
     echo "${OP_ITEM}" | jq -r "${KEY} | select (length > 0)" | fzf
@@ -118,10 +120,12 @@ op_get_otp () {
 # Usage
 usage_get () {
     cat <<EOF
-${CMDNAME} - 1Password CLI でいい感じにするやつ
+${CMDNAME} - Get credential from 1Password
 
 Usage:
-    ${CMDNAME} [<options>]
+    ${CMDNAME} [(-n|--name) <name>] [(-f|--field) <field>] [(-i|--interactive)] [--otp]
+    ${CMDNAME} -h | --help
+    ${CMDNAME} -v | --version
 
 Options:
     -n, --name          1Password item name
@@ -208,10 +212,12 @@ OP_CMD="op --session=$(get_op_session)"
 
 usage () {
     cat <<EOF
-${PROGNAME} - 1Password CLI でいい感じにするやつ
+${PROGNAME} - make it convenient to use 1Password CLI
 
 Usage:
-    ${PROGNAME} [<options>]
+    ${PROGNAME} <command> [<args>]
+    ${PROGNAME} -h | --help
+    ${PROGNAME} -v | --version
 
 Commands:
     get                 Get password from 1Password Vault
@@ -219,7 +225,7 @@ Commands:
 
 Options:
     -h, --help          Show this message
-    -v, --version       Print the ${PROGNAME} version
+    -v, --version       Print the op-tool version
 EOF
 }
 
