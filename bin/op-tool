@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+
+set -e
+
+VERSION=0.0.1
+PROGNAME=op-tool
+
+#--------------------------------------------------
+# Session
+#--------------------------------------------------
+
+# Get session id from file
+get_op_session () {
+    cat ${OP_SESSIONFILE} | head -1 | sed -E 's/^export OP_SESSION_.+="(.*)"/\1/'
+}
+
+# Set --session flag to 1Password CLI
+set_op_session () {
+    OP_CMD="op --session=$(get_op_session)"
+}
+
+# Check 1Password CLI session
+check_op_session() {
+    if [ ! -f ${OP_SESSIONFILE} ]; then
+        echo "-1"
+    fi
+
+    set +e
+    ${OP_CMD} get account > /dev/null
+    echo $?
+    set -e
+}
+
+# Save 1Password CLI session to file
+restore_op_session () {
+    if [ ! -d ${OP_SESSIONDIR} ] ;then
+        mkdir -p ${OP_SESSIONDIR}
+    fi
+    op signin ${OP_SIGNIN_ADDRESS:-my} > ${OP_SESSIONFILE}
+    set_op_session
+}
+
+# Usage
+usage_session () {
+    cat <<EOF
+${CMDNAME} - store op session
+
+Usage:
+    ${CMDNAME} [<options>]
+
+Options:
+    -h, --help      Show this message
+    -v, --version   Print the ${PROGNAME} version
+EOF
+}
+
+# Parse arguments
+arg_parse_session () {
+    for OPT in "$@"
+    do
+        case $OPT in
+            "-h" | "--help")
+                usage_session
+                exit 0
+                ;;
+            "-v" | "--version")
+                echo "${VERSION}"
+                ;;
+        esac
+    done
+}
+
+# check op session
+op_session () {
+    CMDNAME="${PROGNAME} session"
+    arg_parse_session "$@"
+
+    if [ ! "$(check_op_session)" = "0" ]; then
+        restore_op_session
+        echo "op session restored."
+    else
+        echo "You have already logged in."
+    fi
+}
+
+#--------------------------------------------------
+# Get
+#--------------------------------------------------
+
+# Select item from list
+select_item () {
+    ${OP_CMD} list items | jq -r '.[].overview.title' | fzf
+}
+
+# Select field from item
+select_field () {
+    local OP_ITEM=$(${OP_CMD} get item "${OP_ITEM_NAME}")
+    local OP_ITEM_SECTION_NUM=$(echo ${OP_ITEM} | jq -r '.details.sections | length')
+    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 1 ]; then
+        KEY=".details | [.fields[].designation, .sections[].fields[]?.t]"
+    else
+        KEY=".details.fields[].designation"
+    fi
+
+    echo ${OP_ITEM} | jq -r "${KEY} | .[]" | fzf
+}
+
+# Get credential
+op_get_item () {
+    ${OP_CMD} get item ${OP_ITEM_NAME} --fields "${OP_ITEM_FIELD:-password}" | pbcopy
+}
+
+# Get one-time password
+op_get_otp () {
+    ${OP_CMD} get totp ${OP_ITEM_NAME} | pbcopy
+}
+
+# Usage
+usage_get () {
+    cat <<EOF
+${CMDNAME} - 1Password CLI でいい感じにするやつ
+
+Usage:
+    ${CMDNAME} [<options>]
+
+Options:
+    -n, --name          1Password item name
+    -f, --field         1Password item fields
+    -i, --interactive   Select field interactive
+    --otp               Get One-time Password
+    -h, --help          Show this message
+    -v, --version       Print the ${PROGNAME} version
+EOF
+}
+
+# Parse arguments
+arg_parse_get () {
+    for OPT in "$@"
+    do
+        case $OPT in
+            "-h" | "--help")
+                usage_get
+                exit 0
+                ;;
+            "-v" | "--version")
+                echo "${VERSION}"
+                ;;
+            "-n" | "--name")
+                OP_ITEM_NAME=$2
+                shift 2
+                ;;
+            "-f" | "--field")
+                OP_ITEM_FIELD=$2
+                shift 2
+                ;;
+            "-i" | "--interactive")
+                INTERACTIVE=1
+                shift
+                ;;
+            "--otp")
+                OP_ITEM_FIELD="One-time Password"
+                shift
+                ;;
+        esac
+    done
+}
+
+# op-tool get
+op_get () {
+    CMDNAME="${PROGNAME} get"
+    arg_parse_get "$@"
+
+    # check op session
+    op_session
+
+    # get 1password item by using 1password cli
+    if [ -z "${OP_ITEM_NAME}" ]; then
+        OP_ITEM_NAME=$(select_item)
+    fi
+
+    # get 1password item field interactive
+    if [ -z "${OP_ITEM_FIELD}" ] && [ "${INTERACTIVE}" = 1 ]; then
+        OP_ITEM_FIELD=$(select_field)
+    fi
+
+    # get password from 1password item
+    if [ "${OP_ITEM_FIELD}" = "One-time Password" ]; then
+        op_get_otp
+    else
+        op_get_item
+    fi
+    echo "Copied 1Password item to clipboard. (item=${OP_ITEM_NAME}, field=${OP_ITEM_FIELD:-password})"
+}
+
+#--------------------------------------------------
+# Variables
+#--------------------------------------------------
+# session
+OP_SESSIONDIR=${XDG_CACHE_HOME:-~/.cache}/op
+OP_SESSIONFILE=${OP_SESSIONDIR}/session
+
+# 1Password CLI with session
+OP_CMD="op --session=$(get_op_session)"
+
+#--------------------------------------------------
+# main function
+#--------------------------------------------------
+
+usage () {
+    cat <<EOF
+${PROGNAME} - 1Password CLI でいい感じにするやつ
+
+Usage:
+    ${PROGNAME} [<options>]
+
+Commands:
+    get                 Get password from 1Password Vault
+    session             Restore op session
+
+Options:
+    -h, --help          Show this message
+    -v, --version       Print the ${PROGNAME} version
+EOF
+}
+
+# parse arguments
+case $1 in
+    "-h" | "--help")
+        usage
+        exit 0
+        ;;
+    "-v" | "--version")
+        echo "${VERSION}"
+        exit 0
+        ;;
+    "get")
+        op_get "${@:2}"
+        ;;
+    "session")
+        op_session "${@:2}"
+        ;;
+    "*")
+        usage
+        exit 1
+        ;;
+esac
