@@ -9,15 +9,15 @@ select_item () {
 
 # Select field from item
 select_field () {
-    local OP_ITEM=$(${OP_CMD} get item "${OP_ITEM_NAME}")
-    local OP_ITEM_SECTION_NUM=$(echo ${OP_ITEM} | jq -r '.details.sections | length')
-    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 1 ]; then
-        KEY=".details | [.fields[].designation, .sections[].fields[]?.t]"
+    local OP_ITEM=$(${OP_CMD} get item "${OP_ITEM_NAME}" | jq -r '.details')
+    local OP_ITEM_SECTION_NUM=$(echo "${OP_ITEM}" | jq -r '.sections | length')
+    if [ $(( $(echo ${OP_ITEM_SECTION_NUM}) )) -gt 0 ]; then
+        KEY="[.fields[].designation, .sections[].fields[]?.t] | .[]"
     else
-        KEY=".details.fields[].designation"
+        KEY=".fields[].designation"
     fi
 
-    echo ${OP_ITEM} | jq -r "${KEY} | .[]" | fzf
+    echo "${OP_ITEM}" | jq -r "${KEY}" | fzf
 }
 
 # Get credential
